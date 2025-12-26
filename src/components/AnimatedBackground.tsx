@@ -1,46 +1,195 @@
+import { useEffect, useRef } from "react";
+
+interface Particle {
+  x: number;
+  y: number;
+  baseY: number;
+  speed: number;
+  radius: number;
+  color: string;
+  opacity: number;
+  phase: number;
+}
+
 const AnimatedBackground = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
+  const particlesRef = useRef<Particle[]>([]);
+  const timeRef = useRef(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    };
+
+    const colors = [
+      "rgba(0, 212, 212, ", // Cyan
+      "rgba(0, 188, 212, ", // Teal
+      "rgba(147, 51, 234, ", // Purple
+      "rgba(219, 39, 119, ", // Pink/Magenta
+      "rgba(59, 130, 246, ", // Blue
+    ];
+
+    const initParticles = () => {
+      const particles: Particle[] = [];
+      const particleCount = Math.floor((canvas.width * canvas.height) / 3000);
+
+      for (let i = 0; i < particleCount; i++) {
+        const baseY = canvas.height * 0.4 + Math.random() * canvas.height * 0.5;
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: baseY,
+          baseY: baseY,
+          speed: 0.2 + Math.random() * 0.5,
+          radius: 0.5 + Math.random() * 2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          opacity: 0.3 + Math.random() * 0.7,
+          phase: Math.random() * Math.PI * 2,
+        });
+      }
+
+      particlesRef.current = particles;
+    };
+
+    const drawParticles = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw gradient background overlay
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "rgba(15, 23, 42, 0)");
+      gradient.addColorStop(0.3, "rgba(15, 23, 42, 0)");
+      gradient.addColorStop(1, "rgba(15, 23, 42, 0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      timeRef.current += 0.005;
+
+      particlesRef.current.forEach((particle) => {
+        // Wave motion
+        const waveOffset = Math.sin(
+          timeRef.current * 2 + particle.phase + particle.x * 0.002
+        ) * 40;
+        
+        const waveOffset2 = Math.cos(
+          timeRef.current * 1.5 + particle.phase * 0.5 + particle.x * 0.003
+        ) * 25;
+
+        particle.y = particle.baseY + waveOffset + waveOffset2;
+
+        // Horizontal drift
+        particle.x += particle.speed * 0.3;
+        if (particle.x > canvas.width + 10) {
+          particle.x = -10;
+          particle.baseY = canvas.height * 0.4 + Math.random() * canvas.height * 0.5;
+        }
+
+        // Draw particle with glow
+        const glowSize = particle.radius * 4;
+        const glow = ctx.createRadialGradient(
+          particle.x,
+          particle.y,
+          0,
+          particle.x,
+          particle.y,
+          glowSize
+        );
+        glow.addColorStop(0, particle.color + particle.opacity + ")");
+        glow.addColorStop(0.4, particle.color + particle.opacity * 0.3 + ")");
+        glow.addColorStop(1, particle.color + "0)");
+
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, glowSize, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Draw core particle
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.fillStyle = particle.color + particle.opacity + ")";
+        ctx.fill();
+      });
+
+      // Draw flowing light beams
+      drawLightBeams(ctx, canvas.width, canvas.height);
+
+      animationRef.current = requestAnimationFrame(drawParticles);
+    };
+
+    const drawLightBeams = (
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number
+    ) => {
+      const time = timeRef.current;
+
+      // Cyan beam
+      ctx.beginPath();
+      ctx.moveTo(0, height * 0.5);
+      for (let x = 0; x <= width; x += 5) {
+        const y =
+          height * 0.5 +
+          Math.sin(x * 0.003 + time * 2) * 50 +
+          Math.cos(x * 0.005 + time * 1.5) * 30;
+        ctx.lineTo(x, y);
+      }
+      const cyanGradient = ctx.createLinearGradient(0, height * 0.4, 0, height * 0.6);
+      cyanGradient.addColorStop(0, "rgba(0, 212, 212, 0)");
+      cyanGradient.addColorStop(0.5, "rgba(0, 212, 212, 0.15)");
+      cyanGradient.addColorStop(1, "rgba(0, 212, 212, 0)");
+      ctx.strokeStyle = cyanGradient;
+      ctx.lineWidth = 60;
+      ctx.stroke();
+
+      // Purple/magenta beam
+      ctx.beginPath();
+      ctx.moveTo(0, height * 0.45);
+      for (let x = 0; x <= width; x += 5) {
+        const y =
+          height * 0.45 +
+          Math.sin(x * 0.004 + time * 1.8 + 1) * 40 +
+          Math.cos(x * 0.006 + time * 1.2) * 35;
+        ctx.lineTo(x, y);
+      }
+      const purpleGradient = ctx.createLinearGradient(0, height * 0.35, 0, height * 0.55);
+      purpleGradient.addColorStop(0, "rgba(147, 51, 234, 0)");
+      purpleGradient.addColorStop(0.5, "rgba(147, 51, 234, 0.1)");
+      purpleGradient.addColorStop(1, "rgba(147, 51, 234, 0)");
+      ctx.strokeStyle = purpleGradient;
+      ctx.lineWidth = 50;
+      ctx.stroke();
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    drawParticles();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Animated Gradient Orbs */}
-      <div 
-        className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl animate-float-slow"
-        style={{ animationDelay: "0s" }}
+    <>
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 z-0"
+        style={{ background: "transparent" }}
       />
-      <div 
-        className="absolute top-1/4 -right-20 h-60 w-60 rounded-full bg-secondary/20 blur-3xl animate-float"
-        style={{ animationDelay: "2s" }}
-      />
-      <div 
-        className="absolute bottom-1/4 left-1/4 h-72 w-72 rounded-full bg-accent/15 blur-3xl animate-float-slow"
-        style={{ animationDelay: "4s" }}
-      />
-      <div 
-        className="absolute -bottom-20 right-1/3 h-64 w-64 rounded-full bg-primary/25 blur-3xl animate-float"
-        style={{ animationDelay: "1s" }}
-      />
-      
-      {/* Floating Particles */}
-      <div className="absolute top-1/3 left-1/5 h-2 w-2 rounded-full bg-primary/60 animate-glow-pulse" style={{ animationDelay: "0s" }} />
-      <div className="absolute top-1/2 left-2/3 h-3 w-3 rounded-full bg-secondary/50 animate-glow-pulse" style={{ animationDelay: "1s" }} />
-      <div className="absolute top-2/3 left-1/4 h-2 w-2 rounded-full bg-accent/60 animate-glow-pulse" style={{ animationDelay: "2s" }} />
-      <div className="absolute top-1/4 right-1/4 h-4 w-4 rounded-full bg-primary/40 animate-glow-pulse" style={{ animationDelay: "3s" }} />
-      <div className="absolute bottom-1/3 right-1/3 h-2 w-2 rounded-full bg-secondary/60 animate-glow-pulse" style={{ animationDelay: "0.5s" }} />
-      <div className="absolute top-3/4 left-1/2 h-3 w-3 rounded-full bg-accent/50 animate-glow-pulse" style={{ animationDelay: "1.5s" }} />
-      
-      {/* Drifting Lines */}
-      <div 
-        className="absolute h-px w-32 bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-drift"
-        style={{ top: "20%", animationDelay: "0s", animationDuration: "15s" }}
-      />
-      <div 
-        className="absolute h-px w-48 bg-gradient-to-r from-transparent via-secondary/20 to-transparent animate-drift"
-        style={{ top: "50%", animationDelay: "5s", animationDuration: "20s" }}
-      />
-      <div 
-        className="absolute h-px w-40 bg-gradient-to-r from-transparent via-accent/25 to-transparent animate-drift"
-        style={{ top: "70%", animationDelay: "10s", animationDuration: "18s" }}
-      />
-    </div>
+      {/* Additional gradient overlays for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background opacity-60" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/50" />
+    </>
   );
 };
 
