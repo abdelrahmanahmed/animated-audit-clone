@@ -1,88 +1,131 @@
-import { Wrench } from "lucide-react";
+import { Helmet } from "react-helmet";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import CountdownTimer from "@/components/CountdownTimer";
+import EmailCapture from "@/components/EmailCapture";
+import SocialIcons from "@/components/SocialIcons";
+import { Toaster } from "@/components/ui/sonner";
+
+/**
+ * Coming Soon Landing Page
+ * 
+ * Configuration:
+ * - Change launch date in LAUNCH_DATE constant
+ * - Update company info in the content sections
+ * - Background image is configured in AnimatedBackground component
+ * - Color palette is in src/index.css (look for PALETTE section)
+ */
+
+// ============================================
+// CONFIGURATION - Change these values
+// ============================================
+const LAUNCH_DATE = new Date("2026-03-01T00:00:00");
+const COMPANY_NAME = "AUDIT";
+const TAGLINE = "Auditing Today, Protecting Tomorrow";
+const DESCRIPTION = "We're building something extraordinary. Be the first to experience the future of smart auditing solutions.";
+const CONTACT_EMAIL = "hello@audit.com";
 
 const Index = () => {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background">
+    <>
+      <Helmet>
+        <title>{COMPANY_NAME} | Coming Soon</title>
+        <meta name="description" content={DESCRIPTION} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Helmet>
+
+      <Toaster position="top-center" />
+
       {/* Animated Background */}
       <AnimatedBackground />
-      
-      {/* Gradient Glow Background */}
-      <div className="absolute inset-0 bg-gradient-glow opacity-50" />
-
-      {/* Grid Pattern Overlay */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px),
-                           linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }}
-      />
 
       {/* Main Content */}
-      <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        {/* Icon */}
-        <div className="mb-8 animate-fade-in">
-          <div className="relative">
-            <div className="absolute inset-0 animate-pulse-glow rounded-full bg-primary/20 blur-2xl" />
-            <Wrench className="relative h-20 w-20 text-primary" strokeWidth={1.5} />
+      <div className="relative min-h-screen flex flex-col">
+        {/* Header / Logo */}
+        <header className="w-full px-6 py-6 md:px-12 md:py-8">
+          <div 
+            className="flex items-center gap-3 opacity-0 animate-fade-up"
+            style={{ animationDelay: "0s" }}
+          >
+            {/* Logo placeholder - replace with your actual logo */}
+            <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
+              <span className="text-lg font-bold text-primary-foreground">A</span>
+            </div>
+            <span className="text-xl font-semibold text-foreground">{COMPANY_NAME}</span>
           </div>
-        </div>
+        </header>
 
-        {/* Website Name */}
-        <p
-          className="mb-4 animate-fade-in text-2xl font-semibold text-primary sm:text-3xl md:text-4xl"
-          style={{ animationDelay: "0.05s", animationFillMode: "both" }}
-        >
-          audit.com.eg
-        </p>
+        {/* Main Content - Centered */}
+        <main className="flex-1 flex items-center justify-center px-6 py-12 md:px-12">
+          <div className="w-full max-w-3xl mx-auto text-center space-y-10">
+            {/* Headline */}
+            <div className="space-y-4">
+              <h1 
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight opacity-0 animate-fade-up"
+                style={{ animationDelay: "0.1s" }}
+              >
+                Coming Soon
+              </h1>
+              
+              {/* Subheadline */}
+              <p 
+                className="text-lg sm:text-xl md:text-2xl text-primary font-medium opacity-0 animate-fade-up"
+                style={{ animationDelay: "0.15s" }}
+              >
+                {TAGLINE}
+              </p>
+              
+              {/* Description */}
+              <p 
+                className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto opacity-0 animate-fade-up"
+                style={{ animationDelay: "0.2s" }}
+              >
+                {DESCRIPTION}
+              </p>
+            </div>
 
-        {/* Heading */}
-        <h1
-          className="mb-6 animate-fade-in text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl lg:text-8xl"
-          style={{ animationDelay: "0.1s", animationFillMode: "both" }}
-        >
-          Under Construction
-        </h1>
+            {/* Email Capture */}
+            <EmailCapture />
 
-        {/* Subheading */}
-        <p
-          className="mb-12 max-w-2xl animate-fade-in text-lg text-muted-foreground sm:text-xl md:text-2xl"
-          style={{ animationDelay: "0.2s", animationFillMode: "both" }}
-        >
-          We're crafting something extraordinary. Our website is currently being built with care and attention to detail.
-        </p>
+            {/* Countdown Timer */}
+            <div className="pt-4">
+              <p 
+                className="text-sm text-muted-foreground mb-6 opacity-0 animate-fade-up"
+                style={{ animationDelay: "0.35s" }}
+              >
+                Launching in
+              </p>
+              <CountdownTimer targetDate={LAUNCH_DATE} />
+            </div>
 
-        {/* Progress Bar */}
-        <div
-          className="mb-8 w-full max-w-md animate-fade-in"
-          style={{ animationDelay: "0.3s", animationFillMode: "both" }}
-        >
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full animate-progress rounded-full bg-gradient-primary"
-              style={{ animationDuration: "3s" }}
-            />
+            {/* Social Icons */}
+            <div className="pt-6">
+              <SocialIcons />
+            </div>
           </div>
-        </div>
+        </main>
 
-        {/* Status Text */}
-        <p
-          className="animate-fade-in text-sm font-medium text-primary"
-          style={{ animationDelay: "0.4s", animationFillMode: "both" }}
-        >
-          Coming Soon
-        </p>
-      </main>
-
-      {/* Footer */}
-      <footer className="absolute bottom-8 left-0 right-0 z-10">
-        <p className="text-center text-sm text-muted-foreground">
-          © 2025 audit.com.eg - All Rights Reserved
-        </p>
-      </footer>
-    </div>
+        {/* Footer */}
+        <footer className="w-full px-6 py-6 md:px-12 md:py-8">
+          <div 
+            className="text-center space-y-2 opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.8s" }}
+          >
+            <p className="text-sm text-muted-foreground">
+              Questions? Reach out to us at{" "}
+              <a 
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="text-primary link-underline transition-colors duration-300 hover:text-primary/80"
+              >
+                {CONTACT_EMAIL}
+              </a>
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              © {new Date().getFullYear()} {COMPANY_NAME}. All rights reserved.
+            </p>
+          </div>
+        </footer>
+      </div>
+    </>
   );
 };
 
