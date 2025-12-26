@@ -1,147 +1,195 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-/**
- * AnimatedBackground Component
- * 
- * Features:
- * - Full-page background image (swap URL at BACKGROUND_IMAGE_URL)
- * - Gradient drift overlay following image colors
- * - Soft moving light blobs with low opacity
- * - Grain texture
- * - Parallax on scroll
- * 
- * To change background image: Update the BACKGROUND_IMAGE_URL constant
- */
-
-// ============================================
-// CONFIGURATION - Change these values
-// ============================================
-const BACKGROUND_IMAGE_URL = "/images/background.png";
+interface Particle {
+  x: number;
+  y: number;
+  baseY: number;
+  speed: number;
+  radius: number;
+  color: string;
+  opacity: number;
+  phase: number;
+}
 
 const AnimatedBackground = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollY, setScrollY] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
+  const particlesRef = useRef<Particle[]>([]);
+  const timeRef = useRef(0);
 
-  // Parallax scroll effect
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const colors = [
+      "rgba(0, 212, 212, ", // Cyan
+      "rgba(0, 188, 212, ", // Teal
+      "rgba(147, 51, 234, ", // Purple
+      "rgba(219, 39, 119, ", // Pink/Magenta
+      "rgba(59, 130, 246, ", // Blue
+    ];
+
+    const initParticles = () => {
+      const particles: Particle[] = [];
+      const particleCount = Math.floor((canvas.width * canvas.height) / 3000);
+
+      for (let i = 0; i < particleCount; i++) {
+        const baseY = canvas.height * 0.4 + Math.random() * canvas.height * 0.5;
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: baseY,
+          baseY: baseY,
+          speed: 0.2 + Math.random() * 0.5,
+          radius: 0.5 + Math.random() * 2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          opacity: 0.3 + Math.random() * 0.7,
+          phase: Math.random() * Math.PI * 2,
+        });
+      }
+
+      particlesRef.current = particles;
+    };
+
+    const drawParticles = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw gradient background overlay
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "rgba(15, 23, 42, 0)");
+      gradient.addColorStop(0.3, "rgba(15, 23, 42, 0)");
+      gradient.addColorStop(1, "rgba(15, 23, 42, 0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      timeRef.current += 0.005;
+
+      particlesRef.current.forEach((particle) => {
+        // Wave motion
+        const waveOffset = Math.sin(
+          timeRef.current * 2 + particle.phase + particle.x * 0.002
+        ) * 40;
+        
+        const waveOffset2 = Math.cos(
+          timeRef.current * 1.5 + particle.phase * 0.5 + particle.x * 0.003
+        ) * 25;
+
+        particle.y = particle.baseY + waveOffset + waveOffset2;
+
+        // Horizontal drift
+        particle.x += particle.speed * 0.3;
+        if (particle.x > canvas.width + 10) {
+          particle.x = -10;
+          particle.baseY = canvas.height * 0.4 + Math.random() * canvas.height * 0.5;
+        }
+
+        // Draw particle with glow
+        const glowSize = particle.radius * 4;
+        const glow = ctx.createRadialGradient(
+          particle.x,
+          particle.y,
+          0,
+          particle.x,
+          particle.y,
+          glowSize
+        );
+        glow.addColorStop(0, particle.color + particle.opacity + ")");
+        glow.addColorStop(0.4, particle.color + particle.opacity * 0.3 + ")");
+        glow.addColorStop(1, particle.color + "0)");
+
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, glowSize, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Draw core particle
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.fillStyle = particle.color + particle.opacity + ")";
+        ctx.fill();
+      });
+
+      // Draw flowing light beams
+      drawLightBeams(ctx, canvas.width, canvas.height);
+
+      animationRef.current = requestAnimationFrame(drawParticles);
+    };
+
+    const drawLightBeams = (
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number
+    ) => {
+      const time = timeRef.current;
+
+      // Cyan beam
+      ctx.beginPath();
+      ctx.moveTo(0, height * 0.5);
+      for (let x = 0; x <= width; x += 5) {
+        const y =
+          height * 0.5 +
+          Math.sin(x * 0.003 + time * 2) * 50 +
+          Math.cos(x * 0.005 + time * 1.5) * 30;
+        ctx.lineTo(x, y);
+      }
+      const cyanGradient = ctx.createLinearGradient(0, height * 0.4, 0, height * 0.6);
+      cyanGradient.addColorStop(0, "rgba(0, 212, 212, 0)");
+      cyanGradient.addColorStop(0.5, "rgba(0, 212, 212, 0.15)");
+      cyanGradient.addColorStop(1, "rgba(0, 212, 212, 0)");
+      ctx.strokeStyle = cyanGradient;
+      ctx.lineWidth = 60;
+      ctx.stroke();
+
+      // Purple/magenta beam
+      ctx.beginPath();
+      ctx.moveTo(0, height * 0.45);
+      for (let x = 0; x <= width; x += 5) {
+        const y =
+          height * 0.45 +
+          Math.sin(x * 0.004 + time * 1.8 + 1) * 40 +
+          Math.cos(x * 0.006 + time * 1.2) * 35;
+        ctx.lineTo(x, y);
+      }
+      const purpleGradient = ctx.createLinearGradient(0, height * 0.35, 0, height * 0.55);
+      purpleGradient.addColorStop(0, "rgba(147, 51, 234, 0)");
+      purpleGradient.addColorStop(0.5, "rgba(147, 51, 234, 0.1)");
+      purpleGradient.addColorStop(1, "rgba(147, 51, 234, 0)");
+      ctx.strokeStyle = purpleGradient;
+      ctx.lineWidth = 50;
+      ctx.stroke();
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    drawParticles();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
   }, []);
 
-  const parallaxOffset = scrollY * 0.15;
-
   return (
-    <div ref={containerRef} className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Base background image with parallax */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-100"
-        style={{
-          backgroundImage: `url('${BACKGROUND_IMAGE_URL}')`,
-          transform: `translateY(${parallaxOffset}px) scale(1.1)`,
-        }}
+    <>
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 z-0"
+        style={{ background: "transparent" }}
       />
-
-      {/* Gradient overlay matching image colors */}
-      <div 
-        className="absolute inset-0 animate-gradient-drift"
-        style={{
-          background: `
-            linear-gradient(
-              135deg,
-              hsla(142, 71%, 45%, 0.08) 0%,
-              hsla(160, 84%, 39%, 0.06) 25%,
-              hsla(175, 60%, 25%, 0.1) 50%,
-              hsla(160, 35%, 9%, 0.15) 75%,
-              hsla(150, 25%, 5%, 0.1) 100%
-            )
-          `,
-          backgroundSize: '400% 400%',
-        }}
-      />
-
-      {/* Soft moving light blobs */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Emerald blob - top right */}
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full animate-blob-float-1"
-          style={{
-            top: '-10%',
-            right: '-5%',
-            background: 'radial-gradient(circle, hsla(142, 71%, 45%, 0.12) 0%, transparent 70%)',
-            filter: 'blur(60px)',
-          }}
-        />
-        
-        {/* Teal blob - center left */}
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full animate-blob-float-2"
-          style={{
-            top: '30%',
-            left: '-10%',
-            background: 'radial-gradient(circle, hsla(160, 84%, 39%, 0.1) 0%, transparent 70%)',
-            filter: 'blur(80px)',
-          }}
-        />
-        
-        {/* Dark teal blob - bottom center */}
-        <div
-          className="absolute w-[700px] h-[700px] rounded-full animate-blob-float-3"
-          style={{
-            bottom: '-20%',
-            left: '30%',
-            background: 'radial-gradient(circle, hsla(175, 60%, 25%, 0.08) 0%, transparent 70%)',
-            filter: 'blur(100px)',
-          }}
-        />
-
-        {/* Additional subtle emerald glow */}
-        <div
-          className="absolute w-[400px] h-[400px] rounded-full animate-pulse-soft"
-          style={{
-            top: '50%',
-            right: '20%',
-            background: 'radial-gradient(circle, hsla(142, 71%, 45%, 0.06) 0%, transparent 70%)',
-            filter: 'blur(50px)',
-          }}
-        />
-      </div>
-
-      {/* Vignette overlay for depth */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, hsla(150, 25%, 5%, 0.4) 100%)',
-        }}
-      />
-
-      {/* Top fade for header readability */}
-      <div 
-        className="absolute top-0 left-0 right-0 h-32"
-        style={{
-          background: 'linear-gradient(to bottom, hsla(150, 25%, 5%, 0.5) 0%, transparent 100%)',
-        }}
-      />
-
-      {/* Bottom fade for footer readability */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-48"
-        style={{
-          background: 'linear-gradient(to top, hsla(150, 25%, 5%, 0.6) 0%, transparent 100%)',
-        }}
-      />
-
-      {/* Grain texture overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
-    </div>
+      {/* Additional gradient overlays for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background opacity-60" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/50" />
+    </>
   );
 };
 
